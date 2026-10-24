@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATLAS - Research Facility</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand"><div class="mark" aria-hidden="true">A</div><div><b>ATLAS</b><small>RESEARCH FACILITY</small></div></div>
+  <div class="navlabel">WORKSPACE</div>
+  <nav class="nav" aria-label="Main">
+    <button data-view="desk" class="on">◈ Research desk</button>
+    <button data-view="library">▤ Research library</button>
+    <button data-view="settings">⚙ Settings</button>
+  </nav>
+  <div class="sysbox" aria-live="polite">
+    <div class="tag mb6">System status</div>
+    <div class="row"><span class="dot" id="dotLocal"></span><span id="txtLocal">Checking local AI…</span></div>
+    <div class="row"><span class="dot" id="dotSearch"></span><span id="txtSearch">Search providers…</span></div>
+    <div class="row"><span class="dot ok"></span><span id="txtMem">Memory: …</span></div>
+    <div class="row"><span class="dot" id="dotOnion"></span><span id="txtOnion">Onion module: off</span></div>
+    <div class="hint mt8" id="txtVer"></div>
+  </div>
+</aside>
+
+<main>
+<!-- ============ DESK ============ -->
+<section id="view-desk">
+  <div class="eyebrow">Local-first research</div><h1>Research desk</h1>
+  <p class="sub">Ask a question. ATLAS searches, reads, scores and cross-checks sources, then builds a cited report you can trace claim by claim.</p>
+
+  <div class="panel">
+    <div class="ph"><h2>Investigation</h2><span class="tag">01 · configure</span></div>
+    <div class="modes" id="modes" role="group" aria-label="Research mode"></div>
+    <label class="f" for="question">Research question</label>
+    <textarea id="question" maxlength="2000" placeholder="e.g. How do solid-state batteries compare with lithium-ion on energy density and manufacturability?"></textarea>
+    <div class="grid2">
+      <div><label class="f" for="provider">AI workflow</label>
+        <select id="provider">
+          <option value="hybrid">Hybrid - local model, else browser-assisted</option>
+          <option value="local">Local model only</option>
+          <option value="browser">Browser-assisted (no API key)</option>
+          <option value="openai">Online API (OpenAI-compatible, optional)</option>
+        </select><div class="hint" id="providerHint"></div></div>
+      <div><label class="f" for="project">Project (optional)</label><input type="text" id="project" maxlength="80" placeholder="e.g. Battery study"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="sensitive"><span><b>Sensitive research</b> - never send this run's documents to an online AI provider. (Search queries still go to the enabled search services.)</span></label>
+    <details class="adv"><summary>Filters and budget</summary>
+      <div class="grid2">
+        <div><label class="f" for="incDom">Only these domains</label><input type="text" id="incDom" placeholder="nature.com, arxiv.org"></div>
+        <div><label class="f" for="excDom">Exclude domains</label><input type="text" id="excDom" placeholder="example.com"></div>
+        <div><label class="f" for="dFrom">Published from</label><input type="date" id="dFrom"></div>
+        <div><label class="f" for="dTo">Published until</label><input type="date" id="dTo"></div>
+        <div><label class="f" for="bSrc">Max sources (can only lower the mode budget)</label><input type="number" id="bSrc" min="1" max="150" placeholder="mode default"></div>
+        <div><label class="f" for="bTime">Time budget, seconds (can only lower)</label><input type="number" id="bTime" min="10" max="3600" placeholder="mode default"></div>
+      </div>
+    </details>
+    <div class="bar">
+      <button class="b pri" id="btnStart">▶ Start investigation</button>
+      <button class="b danger" id="btnCancel" disabled>■ Cancel</button>
+      <span class="hint" id="startHint"></span>
+    </div>
+  </div>
+
+  <div class="panel progress" id="progressPanel" aria-live="polite">
+    <div class="ph"><h2 id="pStage">Starting…</h2><span class="tag" id="pProv"></span></div>
+    <div class="pbar"><i id="pBar"></i></div>
+    <div class="stats">
+      <div class="stat"><b id="sSources">0</b><span>sources in register</span></div>
+      <div class="stat"><b id="sFound">0</b><span>candidates found</span></div>
+      <div class="stat"><b id="sFetched">0</b><span>pages read</span></div>
+      <div class="stat"><b id="sQueries">0</b><span>queries</span></div>
+      <div class="stat"><b id="sTime">0s</b><span>duration</span></div>
+    </div>
+    <div class="log" id="pLog"></div>
+  </div>
+
+  <div class="panel hidden" id="results">
+    <div class="ph"><div><div class="eyebrow">Results workspace</div><h2 id="rTitle"></h2><div class="meta" id="rMeta"></div></div>
+      <div class="bar m0">
+        <button class="b sm" id="btnCopyMd">Copy Markdown</button>
+        <button class="b sm" data-export="md">⇩ .md</button><button class="b sm" data-export="html">⇩ .html</button>
+        <button class="b sm" data-export="json">⇩ .json</button><button class="b sm" data-export="csv-sources">⇩ sources.csv</button><button class="b sm" data-export="csv-evidence">⇩ evidence.csv</button>
+        <button class="b sm pri" id="btnContinue">↻ Continue investigation</button>
+      </div></div>
+    <div class="tabs" id="rTabs" role="tablist">
+      <button data-tab="report" class="on">Report</button><button data-tab="claims">Evidence-backed claims</button>
+      <button data-tab="sources">Source register</button><button data-tab="conflicts">Conflicts &amp; limitations</button>
+      <button data-tab="browser">Browser-assisted AI &amp; notes</button><button data-tab="summary">Run summary</button>
+    </div>
+    <div id="tab-report" class="md"></div>
+    <div id="tab-claims" class="hidden"></div>
+    <div id="tab-sources" class="hidden"></div>
+    <div id="tab-conflicts" class="hidden"></div>
+    <div id="tab-browser" class="hidden"></div>
+    <div id="tab-summary" class="hidden"></div>
+  </div>
+</section>
+
+<!-- ============ LIBRARY ============ -->
+<section id="view-library" class="hidden">
+  <div class="eyebrow">Persistent memory</div><h1>Research library</h1>
+  <p class="sub">Every investigation, source and claim is stored locally in SQLite and searchable.</p>
+  <div class="panel">
+    <div class="filters">
+      <div><label class="f" for="lq">Search investigations</label><input type="text" id="lq" placeholder="full-text search…"></div>
+      <div><label class="f" for="lmode">Mode</label><select id="lmode"><option value="">All</option><option>light</option><option>medium</option><option>high</option><option>max</option></select></div>
+      <div><label class="f" for="lstatus">Status</label><select id="lstatus"><option value="">All</option><option>completed</option><option>running</option><option>failed</option><option>cancelled</option><option>interrupted</option></select></div>
+      <div><label class="f" for="lfrom">From</label><input type="date" id="lfrom"></div>
+      <div><label class="f" for="lto">To</label><input type="date" id="lto"></div>
+    </div>
+    <div class="grid2"><div><label class="f" for="lproject">Project</label><select id="lproject"><option value="">All</option></select></div>
+      <div><label class="f" for="lchan">Channel</label><select id="lchan"><option value="">All</option><option value="web">Web research</option><option value="onion">Onion research</option></select></div></div>
+    <div class="bar"><button class="b pri" id="btnLSearch">Search</button><button class="b" id="btnCompare" disabled>Compare 2 selected</button>
+      <button class="b danger" id="btnDelete" disabled>Delete selected…</button><span class="hint" id="lcount"></span></div>
+  </div>
+  <div class="panel list" id="runList"></div>
+  <div class="panel hidden" id="compareBox"></div>
+  <div class="panel"><div class="ph"><h2>Search stored sources</h2></div>
+    <div class="bar mt0"><input type="text" id="sq" class="grow" placeholder="search the text of every stored source…"><button class="b" id="btnSSearch">Search sources</button></div>
+    <div id="srcResults"></div></div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="view-settings" class="hidden">
+  <div class="eyebrow">Configuration</div><h1>Settings</h1>
+  <p class="sub">Non-secret settings are stored in <code id="dataDir"></code>. API keys are read only from environment variables and are never stored or shown.</p>
+
+  <div class="panel"><div class="ph"><h2>Local model</h2><span class="tag">OpenAI-compatible endpoint</span></div>
+    <div class="grid2"><div><label class="f" for="setBase">Base URL</label><input type="url" id="setBase" placeholder="http://127.0.0.1:8080/v1"></div>
+      <div><label class="f" for="setModel">Model</label><select id="setModel"><option value="">Auto (first available)</option></select></div></div>
+    <div class="hint" id="modelMsg">Ollama usually listens on http://127.0.0.1:11434/v1, llama.cpp on http://127.0.0.1:8080/v1. ATLAS never downloads models.</div>
+    <div class="bar"><button class="b" id="btnDetect">Detect models</button></div>
+    <label class="f" for="setDefault">Default AI workflow</label>
+    <select id="setDefault"><option value="hybrid">Hybrid</option><option value="local">Local</option><option value="browser">Browser-assisted</option><option value="openai">Online API</option></select>
+  </div>
+
+  <div class="panel"><div class="ph"><h2>Online AI provider (optional)</h2><span class="tag">billed separately from chat subscriptions</span></div>
+    <label class="chk"><input type="checkbox" id="setExternal"><span>Allow external AI providers. Off by default; nothing is sent to an online provider unless this is on <b>and</b> a key is configured <b>and</b> the run is not marked sensitive.</span></label>
+    <div class="grid2"><div><label class="f" for="setOaiBase">API base URL</label><input type="url" id="setOaiBase"></div><div><label class="f" for="setOaiModel">Model name</label><input type="text" id="setOaiModel"></div></div>
+    <div class="hint" id="keyStatus"></div>
+    <div class="hint">Set keys before launching: <code>export OPENAI_API_KEY=…</code> (or put it in your local <code>.env</code>). A ChatGPT or other chat subscription does not include API access.</div>
+  </div>
+
+  <div class="panel"><div class="ph"><h2>Search providers</h2></div><div id="searchProviders"></div>
+    <label class="f" for="setSearx">SearXNG instance URL (optional)</label><input type="url" id="setSearx" placeholder="http://127.0.0.1:8888"></div>
+
+  <div class="panel"><div class="ph"><h2>Resource limits</h2><span class="tag">adjustable within hard ceilings</span></div>
+    <table class="t" id="limitTable"></table>
+    <div class="grid3"><div><label class="f" for="fMaxBytes">Max page size (bytes)</label><input type="number" id="fMaxBytes"></div>
+      <div><label class="f" for="fTimeout">Fetch timeout (s)</label><input type="number" id="fTimeout"></div>
+      <div><label class="f" for="fRedirects">Max redirects</label><input type="number" id="fRedirects"></div></div>
+    <label class="chk"><input type="checkbox" id="fRobots"><span>Respect robots.txt</span></label>
+  </div>
+
+  <div class="panel"><div class="ph"><h2>Data storage and backup</h2></div>
+    <div class="hint" id="storageInfo"></div>
+    <div class="bar"><button class="b" id="btnBackup">Create backup now</button></div>
+    <table class="t" id="backupTable"></table>
+  </div>
+
+  <div class="bar"><button class="b pri" id="btnSaveSettings">Save settings</button><span class="hint" id="saveMsg"></span></div>
+
+  <div class="panel mt20"><div class="ph"><h2>Onion research (optional · isolated · off by default)</h2><span class="tag" id="onionTag">disabled</span></div>
+    <div class="hint" id="onionNote"></div>
+    <label class="f" for="onionAllow">Allowlisted .onion domains (one per line)</label><textarea id="onionAllow" class="mh70" placeholder="exampleonionaddress.onion"></textarea>
+    <div class="bar"><button class="b pri" id="btnOnionEnable">Enable onion module…</button><button class="b danger" id="btnOnionKill">■ Kill switch (disable now)</button></div>
+    <div id="onionResearch" class="hidden"><label class="f" for="oq">Question</label><input type="text" id="oq">
+      <label class="f" for="ourls">Allowlisted onion URLs to read (one per line, max 10)</label><textarea id="ourls" class="mh70"></textarea>
+      <div class="bar"><button class="b" id="btnOnionRun">Read these pages</button></div><div class="hint">Reads only the exact URLs you give it. No search, crawling or link following. Requires Tor listening on a local SOCKS port.</div></div>
+  </div>
+</section>
+</main>
+</div>
+
+<dialog id="dlg"><h2 id="dlgTitle"></h2><p id="dlgBody" class="hint fs13"></p>
+  <div class="bar end"><button class="b" id="dlgNo">Cancel</button><button class="b danger" id="dlgYes">Confirm</button></div></dialog>
+<div id="toast" class="toast hidden" role="status"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
